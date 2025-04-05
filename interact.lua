@@ -6,6 +6,8 @@ if areas.awards_available then
 	awards.register_award("award_wall_by_head", {
 		title = S("Breaks head by wall"),
 		description = S("Die by areas violation"),
+		icon = minetest.get_modpath("default") and
+				"default_brick.png^(crack_anylength.png^[verticalframe:5:1)",
 		secret = true,
 	})
 end
