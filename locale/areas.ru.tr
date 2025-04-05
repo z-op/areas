@@ -135,3 +135,5 @@ Unable to get position.=Не удалось получить позицию.
 Unknown subcommand: @1=Неизвестная под-команда/аргумент.
 
 Relative coordinates is not supported on this server. Please upgrade Minetest to 5.7.0 or newer versions.=
+Breaks head by wall=Разбивает стену головой
+Die by areas violation=Умереть от нарушения зоны защиты
