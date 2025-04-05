@@ -4,6 +4,7 @@
 
 areas = {}
 
+areas.awards_available = minetest.get_modpath("awards") and true
 areas.factions_available = minetest.get_modpath("playerfactions") and true
 
 areas.adminPrivs = {areas=true}
