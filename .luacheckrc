@@ -9,6 +9,7 @@ read_globals = {
 	"PseudoRandom", "ItemStack",
 	"AreaStore",
 	"default",
+	"awards",
 	"factions",
 	table = { fields = { "copy", "getn", "indexof" } }
 }
