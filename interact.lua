@@ -2,11 +2,15 @@ local S = minetest.get_translator("areas")
 local protector_flip = minetest.settings:get_bool("protector_flip") or true
 local protector_hurt = tonumber(minetest.settings:get("protector_hurt")) or 1
 
-awards.register_award("award_wall_by_head", {
-	title = S("Breaks head by wall"),
-	description = S("Die by areas violation"),
-	secret = true,
-})
+if areas.awards_available then
+	awards.register_award("award_wall_by_head", {
+		title = S("Breaks head by wall"),
+		description = S("Die by areas violation"),
+		icon = minetest.get_modpath("default") and
+				"default_brick.png^(crack_anylength.png^[verticalframe:5:1)",
+		secret = true,
+	})
+end
 
 
 local old_is_protected = minetest.is_protected
@@ -28,7 +32,7 @@ minetest.register_on_protection_violation(function(pos, name)
 				if player:get_hp() > 2 then
 					player:set_hp("2")
 				end
-				if (player:get_hp() - protector_hurt) <= 0 then
+				if areas.awards_available and (player:get_hp() - protector_hurt) <= 0 then
 					awards.unlock(name, "award_wall_by_head")
 				end
 				-- This delay fixes item duplication bug (thanks luk3yx)
