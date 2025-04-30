@@ -1,7 +1,5 @@
 # This file is parsed in "settings.lua". Check regex first.
 
-# Static paths do not work well with settings
-#areas.filename (Configuration file path) string (world_path)/areas.dat
 
 # Use smallest area volume precedence concept. (experimental; may change)
 #

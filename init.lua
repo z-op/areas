@@ -24,8 +24,15 @@ dofile(areas.modpath.."/interact.lua")
 dofile(areas.modpath.."/legacy.lua")
 dofile(areas.modpath.."/hud.lua")
 
-areas:load()
 
+--Reset migration flag
+--local mod_storage = core.get_mod_storage()
+--mod_storage:set_string("legacy_migrated", "")
+areas:load()
+core.log("action", "[Areas] protector_radius = " .. tostring(areas.config.protector_radius))
+
+dofile(areas.modpath.."/protector.lua")
+dofile(areas.modpath.."/wand.lua")
 local S = minetest.get_translator("areas")
 
 minetest.register_privilege("areas", {

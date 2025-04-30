@@ -2,10 +2,10 @@
 local S = minetest.get_translator("areas")
 areas.hud = {}
 areas.hud.refresh = 0
-
+local tick = areas.config.tick
 minetest.register_globalstep(function(dtime)
 	areas.hud.refresh = areas.hud.refresh + dtime
-	if areas.hud.refresh > areas.config["tick"] then
+	if areas.hud.refresh > tick then
 		areas.hud.refresh = 0
 	else
 		return

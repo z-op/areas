@@ -1,45 +1,20 @@
-local world_path = minetest.get_worldpath()
-
-areas.config = {}
-
-local function setting(name, tp, default)
-	local full_name = "areas." .. name
-	local value
-	if tp == "bool" then
-		value = minetest.settings:get_bool(full_name)
-		default = value == nil and minetest.is_yes(default)
-	elseif tp == "string" then
-		value = minetest.settings:get(full_name)
-	elseif tp == "v3f" then
-		value = minetest.setting_get_pos(full_name)
-		default = value == nil and minetest.string_to_pos(default)
-	elseif tp == "float" or tp == "int" then
-		value = tonumber(minetest.settings:get(full_name))
-		local v, other = default:match("^(%S+) (.+)")
-		default = value == nil and tonumber(other and v or default)
-	else
-		error("Cannot parse setting type " .. tp)
-	end
-
-	if value == nil then
-		value = default
-		assert(default ~= nil, "Cannot parse default for " .. full_name)
-	end
-	--print("add", name, default, value)
-	areas.config[name] = value
-end
-
-local file = io.open(areas.modpath .. "/settingtypes.txt", "r")
-for line in file:lines() do
-	local name, tp, value = line:match("^areas%.(%S+) %(.*%) (%S+) (.*)")
-	if value then
-		setting(name, tp, value)
-	end
-end
-file:close()
-
 --------------
 -- Settings --
 --------------
 
-setting("filename", "string", world_path.."/areas.dat")
+areas.config = areas.config or {}
+
+areas.config.self_protection_privilege = minetest.settings:get("areas.self_protection_privilege") or "interact"
+areas.config.tick = tonumber(minetest.settings:get("areas.tick")) or 0.5
+areas.config.self_protection_max_size_high = minetest.string_to_pos(minetest.settings:get("areas.self_protection_max_size_high") or "(512, 512, 512)")
+areas.config.self_protection_max_areas_high = tonumber(minetest.settings:get("areas.self_protection_max_areas_high")) or 32
+areas.config.self_protection_max_areas = tonumber(minetest.settings:get("areas.self_protection_max_areas") or "4")
+areas.config.self_protection_max_size = minetest.string_to_pos(minetest.settings:get("areas.self_protection_max_size") or "(64, 128, 64)")
+areas.config.legacy_table = minetest.settings:get_bool("areas.legacy_table") or "false"
+areas.config.self_protection = minetest.settings:get_bool("areas.self_protection") or "false"
+areas.config.use_smallest_area_precedence = minetest.settings:get_bool("areas.use_smallest_area_precedence") or "false"
+areas.config.protector_delay = tonumber(minetest.settings:get("areas.protector_delay") or 2)
+areas.config.protector_radius = tonumber(minetest.settings:get("areas.protector_radius") or 5)
+areas.config.protector_show = tonumber(minetest.settings:get("protector_show_interval") or 5)
+
+

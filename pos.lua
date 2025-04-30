@@ -9,6 +9,7 @@ local S = minetest.get_translator("areas")
 areas.set_pos = {}
 areas.pos1 = {}
 areas.pos2 = {}
+areas.marker_region = {}
 
 local LIMIT = 30992 -- this is due to MAPBLOCK_SIZE=16!
 
@@ -21,7 +22,7 @@ local function posLimit(pos)
 end
 
 local parse_relative_pos
-
+local init_sentinel = "new" .. tostring(math.random(99999))
 if minetest.parse_relative_number then
 	parse_relative_pos = function(x_str, y_str, z_str, pos)
 
@@ -185,6 +186,7 @@ function areas:setPos1(name, pos)
 	areas.pos1[name] = pos
 
 	local entity = minetest.add_entity(pos, "areas:pos1")
+	areas.mark_region(name)
 	if entity then
 		local luaentity = entity:get_luaentity()
 		if luaentity then
@@ -208,6 +210,7 @@ function areas:setPos2(name, pos)
 	areas.pos2[name] = pos
 
 	local entity = minetest.add_entity(pos, "areas:pos2")
+	areas.mark_region(name)
 	if entity then
 		local luaentity = entity:get_luaentity()
 		if luaentity then
@@ -261,6 +264,76 @@ function areas:sortPos(pos1, pos2)
 	return pos1, pos2
 end
 
+areas.mark_region = function(name)
+	local pos1, pos2 = areas.pos1[name], areas.pos2[name]
+
+	if areas.marker_region[name] ~= nil then --marker already exists
+		for _, entity in ipairs(areas.marker_region[name]) do
+			entity:remove()
+		end
+		areas.marker_region[name] = nil
+	end
+
+	if pos1 ~= nil and pos2 ~= nil then
+		--local pos1, pos2 = areas.sort_pos(pos1, pos2) Надо починить
+
+		local vec = vector.subtract(pos2, pos1)
+		local maxside = math.max(vec.x, math.max(vec.y, vec.z))
+		local limit = tonumber(minetest.settings:get("active_object_send_range_blocks")) * 16
+		if maxside > limit * 1.5 then
+			-- The client likely won't be able to see the plane markers as intended anyway,
+			-- thus don't place them and also don't load the area into memory
+			return
+		end
+
+		local thickness = 0.2
+		local sizex, sizey, sizez = (1 + pos2.x - pos1.x) / 2, (1 + pos2.y - pos1.y) / 2, (1 + pos2.z - pos1.z) / 2
+
+		-- TODO maybe we could skip this actually?
+		--areas.keep_loaded(pos1, pos2)
+
+		local markers = {}
+
+		--XY plane markers
+		for _, z in ipairs({pos1.z - 0.5, pos2.z + 0.5}) do
+			local entpos = vector.new(pos1.x + sizex - 0.5, pos1.y + sizey - 0.5, z)
+			local marker = minetest.add_entity(entpos, "areas:region_cube", init_sentinel)
+			if marker ~= nil then
+				marker:set_properties({
+					visual_size={x=sizex * 2, y=sizey * 2},
+					collisionbox = {-sizex, -sizey, -thickness, sizex, sizey, thickness},
+				})
+				marker:get_luaentity().player_name = name
+				table.insert(markers, marker)
+			end
+		end
+
+		--YZ plane markers
+		for _, x in ipairs({pos1.x - 0.5, pos2.x + 0.5}) do
+			local entpos = vector.new(x, pos1.y + sizey - 0.5, pos1.z + sizez - 0.5)
+			local marker = minetest.add_entity(entpos, "areas:region_cube", init_sentinel)
+			if marker ~= nil then
+				marker:set_properties({
+					visual_size={x=sizez * 2, y=sizey * 2},
+					collisionbox = {-thickness, -sizey, -sizez, thickness, sizey, sizez},
+				})
+				marker:set_yaw(math.pi / 2)
+				marker:get_luaentity().player_name = name
+				table.insert(markers, marker)
+			end
+		end
+
+		areas.marker_region[name] = markers
+	end
+end
+
+--convenience function that calls everything
+areas.marker_update = function(name)
+	areas.mark_pos1(name, false)
+	areas.mark_pos2(name, false)
+	areas.mark_region(name)
+end
+
 minetest.register_entity("areas:pos1", {
 	initial_properties = {
 		visual = "cube",
@@ -287,4 +360,33 @@ minetest.register_entity("areas:pos2", {
 		armor_groups = {fleshy=100},
 		static_save = false,
 	},
+})
+
+minetest.register_entity("areas:region_cube", {
+	initial_properties = {
+		visual = "upright_sprite",
+		textures = {"worldedit_cube.png"},
+		visual_size = {x=10, y=10},
+		physical = false,
+		static_save = false,
+	},
+	on_activate = function(self, staticdata, dtime_s)
+		if staticdata ~= init_sentinel then
+			-- we were loaded from before static_save = false was added
+			self.object:remove()
+		end
+	end,
+	on_punch = function(self, hitter)
+		local markers = areas.marker_region[self.player_name]
+		if not markers then
+			return
+		end
+		for _, entity in ipairs(markers) do
+			entity:remove()
+		end
+		areas.marker_region[self.player_name] = nil
+	end,
+	on_blast = function(self, damage)
+		return false, false, {} -- don't damage or knockback
+	end,
 })
