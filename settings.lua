@@ -1,5 +1,4 @@
-local world_path = minetest.get_worldpath()
-
+-- file name: settings.lua
 areas.config = {}
 
 local function setting(name, tp, default)
@@ -7,39 +6,30 @@ local function setting(name, tp, default)
 	local value
 	if tp == "bool" then
 		value = minetest.settings:get_bool(full_name)
-		default = value == nil and minetest.is_yes(default)
+		if value == nil then
+			value = minetest.is_yes(default)
+		end
+		areas.config[name] = value
 	elseif tp == "string" then
 		value = minetest.settings:get(full_name)
+		areas.config[name] = value or default
 	elseif tp == "v3f" then
 		value = minetest.setting_get_pos(full_name)
-		default = value == nil and minetest.string_to_pos(default)
+		areas.config[name] = value or minetest.string_to_pos(default)
 	elseif tp == "float" or tp == "int" then
 		value = tonumber(minetest.settings:get(full_name))
-		local v, other = default:match("^(%S+) (.+)")
-		default = value == nil and tonumber(other and v or default)
+		areas.config[name] = value or tonumber(default)
 	else
 		error("Cannot parse setting type " .. tp)
 	end
-
-	if value == nil then
-		value = default
-		assert(default ~= nil, "Cannot parse default for " .. full_name)
-	end
-	--print("add", name, default, value)
-	areas.config[name] = value
 end
 
-local file = io.open(areas.modpath .. "/settingtypes.txt", "r")
-for line in file:lines() do
-	local name, tp, value = line:match("^areas%.(%S+) %(.*%) (%S+) (.*)")
-	if value then
-		setting(name, tp, value)
-	end
-end
-file:close()
-
---------------
--- Settings --
---------------
-
-setting("filename", "string", world_path.."/areas.dat")
+-- Определяем настройки напрямую в коде
+setting("self_protection", "bool", "true")
+setting("self_protection_privilege", "string", "interact")
+setting("self_protection_max_areas", "int", "4")
+setting("self_protection_max_areas_high", "int", "8")
+setting("self_protection_max_size", "v3f", "32,32,32")
+setting("self_protection_max_size_high", "v3f", "64,64,64")
+setting("tick", "float", "0.5")
+setting("use_smallest_area_precedence", "bool", "false")

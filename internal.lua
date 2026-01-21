@@ -1,64 +1,33 @@
+-- file name: internal.lua
 local S = minetest.get_translator("areas")
 
 function areas:player_exists(name)
 	return minetest.get_auth_handler().get_auth(name) ~= nil
 end
 
--- When saving is done in an async thread, the function will not be present in this global namespace.
-if not areas._internal_do_save then
-	local saving_requested = false
-	local saving_locked = false
-
-	-- Required cuz we are referring to _G.areas._internal_do_save *inside*
-	-- async env (it does not exist in the main thread)
-	local function async_func(...)
-		return areas._internal_do_save(...)
-	end
-
-	local function done_callback()
-		saving_locked = false
-		if saving_requested == true then
-			saving_requested = false
-			return areas:save()
-		end
-	end
-
-	function areas:save()
-		if saving_locked == true then
-			saving_requested = true
-		else
-			saving_locked = true
-			return core.handle_async(async_func, done_callback, self.areas, self.config.filename)
-		end
-	end
-else
-	-- Save the areas table to a file
-	function areas:save()
-		return areas._internal_do_save(self.areas, self.config.filename)
+-- Save the areas table to modstorage
+function areas:save()
+	local data = minetest.write_json(self.areas)
+	if data then
+		self.modstorage:set_string("areas", data)
+		return true
+	else
+		minetest.log("error", "[areas] Failed to serialize area data!")
+		return false
 	end
 end
 
--- Load the areas table from the save file
+-- Load the areas table from modstorage
 function areas:load()
-	local file, err = io.open(self.config.filename, "r")
-	if err then
-		self.areas = self.areas or {}
-		return err
-	end
-	local data = file:read("*a")
-	if data:sub(1, 1) == "[" then
+	local data = self.modstorage:get_string("areas")
+	if data and data ~= "" then
 		self.areas, err = minetest.parse_json(data)
+		if type(self.areas) ~= "table" then
+			self.areas = {}
+		end
 	else
-		self.areas, err = minetest.deserialize(data)
-	end
-	if type(self.areas) ~= "table" then
 		self.areas = {}
 	end
-	if err and #data > 10 then
-		minetest.log("error", "[areas] Failed to load area data: " ..
-			tostring(err))
-	end
-	file:close()
 	self:populateStore()
 end
 
